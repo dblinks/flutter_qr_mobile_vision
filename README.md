@@ -1,36 +1,90 @@
 # QR Mobile Vision
 
-![pub package][version_badge]
+[![pub package][version_badge]](https://pub.dartlang.org/packages/qr_mobile_vision)
 
-_Reading QR codes and other barcodes using Firebase's Mobile Vision API._
-
-# UPDATE - Now using Firebase since apps using GoogleMobileVision have become unreleaseable on iOS.
-
+_Reading QR codes and other barcodes using Firebase's MLKit._
 
 This plugin uses Android & iOS native APIs for reading images from the device's camera.
-It then pipes these images both to the Firebase Mobile Vision API which detects barcodes/qrcodes etc, 
+It then pipes these images both to the MLKit Vision Barcode API which detects barcodes/qrcodes etc,
 and outputs a preview image to be shown on a flutter texture.
 
 The plugin includes a widget which performs all needed transformations on the camera
 output to show within the defined area.
 
-If you are only targeting android and don't want to switch to Firebase Mobile Vision from Google Mobile Vision, use
-a 0.* version of the plugin.
+## Android Models
 
-If you target iOS as well but don't want to integrate Firebase (and like this plugin over other ones available on pub.dev)
-please head over to [this issue](https://github.com/rmtmckenzie/flutter_qr_mobile_vision/issues/121) and give it a +1, as 
-that will tell the developer how much interest there is in it.
+With this new version of MLKit, there are two seperate models you can use to do the barcode scanning. Currently, this
+apk chooses to use the build-in model.  This will increase your code size by ~2.2MB but will
+result in better scanning and won't require a seperate package to be downloaded in the background for barcode scanning
+to work properly.
 
-## Setting up Firebase
+You could also use the Google Play Services and tell your app to download it on install from the play store. See the
+instruction on the [ml-kit barcode-scanning documentation page](https://developers.google.com/ml-kit/vision/barcode-scanning/android)
+for android. You would also have to remove the com.google.mlkit:barcode-scanning dependency; this hasn't been tested
+but would probably go something like this:
 
-If you're using firebase elsewhere in your app, you should be able to simply use this plugin. However, if you're not,
-you'll have to follow steps 1, 2, and 3 from [Firebase's Flutter instructions](https://firebase.google.com/docs/flutter/setup), 
-which include setting up projects in Firebase and 
+```
+configurations.all {
+    exclude group: "com.google.mlkit", module:"barcode-scanning"
+}
+//  ...
+dependencies {
+  // ...
+  // Use this dependency to use the dynamically downloaded model in Google Play Services
+  implementation 'com.google.android.gms:play-services-mlkit-barcode-scanning:16.1.4'
+}
+```
 
-For android, that's all you need to do - the library doesn't seem to actually need initialization.
+Note that if you do this, you should tell your app to automatically download the model as in the above linked docs.MLKit
+```
+<application ...>
+    ...
+    <meta-data
+        android:name="com.google.mlkit.vision.DEPENDENCIES"
+        android:value="barcode" />
+    <!-- To use multiple models: android:value="barcode,model2,model3" -->
+</application>
+```
 
-For iOS, you need to make sure that `FirebaseApp.configure()` is called somewhere before the plugin is used - 
-for instance, in your app's AppDelegate. The example app does this.
+If this doesn't work for you please open an issue.
+
+## 64 Bit Only on iOS
+
+Unfortunately, Google has only released  MLKit as a 64 bit binary. That means that this plugin and therefore your app
+don't support building or running on 32 bit. There were two possible approaches to dealing with this, but only one
+made it so that most users will be able to use the plugin easily.app
+
+When you upgrade, if you are targeting a version of iOS before 11, you'll see a warning during the `pod install`
+and your app probably won't build (at least for release). That's because it'll be trying to build the 32-bit version and
+won't find the required files.
+
+The easy way to solve this is by updating to build for iOS 11 and later. To do this:
+
+1) Add this line to your Podfile:
+```
+platform :ios, '11.0'
+```
+
+2) (optional) Make sure your podfile sets build versions to 11 - if you see this at the bottom of your podfile make sure
+ the line setting the deployment target to 11 is in there.
+```
+post_install do |installer|
+    installer.pods_project.targets.each do |target|
+        target.build_configurations.each do |config|
+            config.build_settings['ENABLE_BITCODE'] = 'NO'
+            config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '11.0'
+        end
+    end
+end
+```
+
+3) Setting the `iOS Deployment Target` to 11 in XCode -> Runner -> Build Settings -> Deployment -> iOS Deployment Target.
+
+## Building for 64-bit before 11.0.
+
+If you absolutely need to build for devices before 11.0, you might need to use an old version of the library that supports
+32-bit. If you're willing to live without 32 bit but do need to target before 11.0, you can do that by ignoring the warning
+CocoaPods will give you, and setting XCode -> Runner -> Build Settings -> Architectures -> Architectures to `${ARCHS_STANDARD_64_BIT}`.
 
 ## Usage
 
@@ -139,7 +193,7 @@ This has been tested on:
 - Nexus 5x
 - Nexus 4
 - Pixel 3a
-- iPhone 6
+- iPhone 7
 
 
 [version_badge]: https://img.shields.io/pub/v/qr_mobile_vision.svg

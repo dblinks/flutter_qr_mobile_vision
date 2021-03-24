@@ -9,8 +9,7 @@ import android.util.SparseIntArray;
 import android.view.Surface;
 import android.view.WindowManager;
 
-import com.google.firebase.ml.vision.common.FirebaseVisionImage;
-import com.google.firebase.ml.vision.common.FirebaseVisionImageMetadata;
+import com.google.mlkit.vision.common.InputImage;
 
 import java.io.IOException;
 import java.util.List;
@@ -49,6 +48,7 @@ class QrCameraC1 implements QrCamera {
         this.context = context;
     }
 
+
     private int getFirebaseOrientation() {
         WindowManager windowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
         int deviceRotation = windowManager.getDefaultDisplay().getRotation();
@@ -58,23 +58,24 @@ class QrCameraC1 implements QrCamera {
         int result;
         switch (rotationCompensation) {
             case 0:
-                result = FirebaseVisionImageMetadata.ROTATION_0;
+                result = 0;
                 break;
             case 90:
-                result = FirebaseVisionImageMetadata.ROTATION_90;
+                result = 90;
                 break;
             case 180:
-                result = FirebaseVisionImageMetadata.ROTATION_180;
+                result = 180;
                 break;
             case 270:
-                result = FirebaseVisionImageMetadata.ROTATION_270;
+                result = 270;
                 break;
             default:
-                result = FirebaseVisionImageMetadata.ROTATION_0;
+                result = Surface.ROTATION_0;
                 Log.e(TAG, "Bad rotation value: " + rotationCompensation);
         }
         return result;
     }
+
     @Override
     public void start() throws QrReader.Exception {
         int numberOfCameras = android.hardware.Camera.getNumberOfCameras();
@@ -117,13 +118,8 @@ class QrCameraC1 implements QrCamera {
 
                     if (data != null) {
 
-                        QrDetector.Frame frame = new Frame(data, new FirebaseVisionImageMetadata.Builder()
-                            .setFormat(IMAGEFORMAT)
-                            .setWidth(previewSize.width)
-                            .setHeight(previewSize.height)
-                            .setRotation(getFirebaseOrientation())
-                            .build());
-
+                        QrDetector.Frame frame = new Frame(data,
+                            previewSize.width, previewSize.height, getFirebaseOrientation(), IMAGEFORMAT);
                         detector.detect(frame);
                     } else {
                         //TODO: something better here?
@@ -146,16 +142,23 @@ class QrCameraC1 implements QrCamera {
 
     static class Frame implements QrDetector.Frame {
         private byte[] data;
-        private final FirebaseVisionImageMetadata metadata;
+        private final int imageFormat;
+        private final int width;
+        private final int height;
+        private final int rotationDegrees;
 
-        Frame(byte[] data, FirebaseVisionImageMetadata metadata) {
+        Frame(byte[] data, int width, int height, int rotationDegrees, int imageFormat) {
             this.data = data;
-            this.metadata = metadata;
+            this.width = width;
+            this.height = height;
+            this.rotationDegrees = rotationDegrees;
+            this.imageFormat = imageFormat;
         }
 
         @Override
-        public FirebaseVisionImage toImage() {
-            return FirebaseVisionImage.fromByteArray(data, metadata);
+        public InputImage toImage() {
+            //fromByteArray(byte[] byteArray, int width, int height, int rotationDegrees, int format)
+            return InputImage.fromByteArray(data, width, height, rotationDegrees, imageFormat);
         }
 
         @Override
@@ -181,9 +184,12 @@ class QrCameraC1 implements QrCamera {
 
     @Override
     public void stop() {
-        camera.stopPreview();
-        camera.setPreviewCallback(null);
-        camera.release();
+        if (camera != null) {
+            camera.stopPreview();
+            camera.setPreviewCallback(null);
+            camera.release();
+            camera = null;
+        }
     }
 
     //Size here is Camera.Size, not android.util.Size as in the QrCameraC2 version of this method

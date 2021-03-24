@@ -1,3 +1,13 @@
+## [3.0.0]
+* Null-safety
+
+## [2.0.0]
+* Switch to using ML Kit without firebase
+* Fix a few small bugs that users reported
+
+## [1.0.2]
+* Fix for android exception when specify more than one type
+
 ## [1.0.1+1]
 * Remove log statement from image close
 
