@@ -222,6 +222,22 @@ class QrCameraC2 implements QrCamera {
 
     }
 
+    private Integer getSceneMode() {
+
+        int[] availableSceneModes = cameraCharacteristics.get(CameraCharacteristics.CONTROL_AVAILABLE_SCENE_MODES);
+        List<Integer> sceneModes = new ArrayList<Integer>(availableSceneModes.length);
+        for (int i : availableSceneModes) sceneModes.add(i);
+
+        Log.i(TAG, "Available scene modes: " + sceneModes.toString());
+
+        if (sceneModes.contains(CameraCharacteristics.CONTROL_SCENE_MODE_BARCODE))
+            return CameraMetadata.CONTROL_SCENE_MODE_BARCODE;
+        else if (sceneModes.contains(CameraCharacteristics.CONTROL_SCENE_MODE_DISABLED))
+            return CameraMetadata.CONTROL_SCENE_MODE_DISABLED;
+        else
+            return CameraMetadata.CONTROL_SCENE_MODE_ACTION;
+    }
+
     private void startCamera() {
         List<Surface> list = new ArrayList<>();
 
@@ -256,7 +272,11 @@ class QrCameraC2 implements QrCamera {
             previewBuilder.addTarget(list.get(1));
 
             Integer afMode = afMode(cameraCharacteristics);
+            Integer sceneMode = getSceneMode();
 
+            Log.i(TAG, "Initialize scene mode: " + sceneMode.toString());
+
+            previewBuilder.set(CaptureRequest.CONTROL_SCENE_MODE, sceneMode);
             previewBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
 
         } catch (java.lang.Exception e) {

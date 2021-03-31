@@ -94,6 +94,15 @@ class QrCameraC1 implements QrCamera {
 
         final android.hardware.Camera.Parameters parameters = camera.getParameters();
 
+        List<String> sceneModes = parameters.getSupportedSceneModes();
+        if(sceneModes.contains(android.hardware.Camera.Parameters.SCENE_MODE_BARCODE)){
+            Log.i(TAG, "Initializing with barcode scene mode.");
+            parameters.setSceneMode(android.hardware.Camera.Parameters.SCENE_MODE_BARCODE);
+        } else{
+            Log.i(TAG, "Initializing with default scene mode.");
+            parameters.setSceneMode(android.hardware.Camera.Parameters.SCENE_MODE_AUTO);
+        }
+
         List<String> focusModes = parameters.getSupportedFocusModes();
         if (focusModes.contains(android.hardware.Camera.Parameters.FOCUS_MODE_AUTO)) {
             Log.i(TAG, "Initializing with autofocus on.");
